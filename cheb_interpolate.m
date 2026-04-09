@@ -9,10 +9,10 @@ function vals = cheb_interpolate(a,x1,x2,x)
 % updates:
 % 01/08/2025: 支持a为矩阵,x为向量的情况, 并将for循环优化为矢量计算.
 % 01/12: 当x为行向量时,输出的vals为行向量
-
+% 04/09/2026: improved by Deepseek 
+ 
 if x1 >= x2  % 交换x1 x2,使得x1为较小值
     tmp = x1; x1 = x2; x2 = tmp;
-    clear tmp
 end
 xL = x2 - x1;
 
@@ -21,22 +21,29 @@ if isrow(a)
 end
 N = size(a,1) - 1;
 n = (0:N).';
-theta = acos(2*(x-x1)/xL-1); % x同size
+% 映射到 Chebyshev 变量 z ∈ [-1,1]
+z = 2*(x - x1)/xL - 1;
+% 数值裁剪，避免 acos 参数略超 [-1,1]
+z = max(min(z, 1), -1);
+theta = acos(z); 
+
 
 flagrow = 0; % 非行向量
 if isscalar(x)
-    vals = a.*cos(n*theta);
-    vals = sum(vals).'; % 返回的vals为标量/列矢量
+    vals = sum(a.*cos(n*theta)).'; % 返回的vals为标量/列矢量
     return
 elseif iscolumn(x)
-    theta = theta.'; % 转成行矢量统一处理
+    theta = theta.'; % theta转成行矢量统一处理
 elseif isrow(x)
     flagrow = 1; 
 end
-ntheta = reshape(n .* theta,[N+1,1,length(x)]); %  列矢量n .* 行矢量theta = N*length(x)矩阵
-vals = a.*cos(ntheta); %[N+1,a的行数,length(x)]维矩阵
-vals = sum(vals); % 沿着第一维求和,[1,a的列数,length(x)]维矩阵
-vals = reshape(vals,[size(a,2),length(x)]); % [a的列数,length(x)]维矩阵
+% ntheta = reshape(n .* theta,[N+1,1,length(x)]); %  列矢量n .* 行矢量theta = N*length(x)矩阵
+% vals = a.*cos(ntheta); %[N+1,a的行数,length(x)]维矩阵
+% vals = sum(vals); % 沿着第一维求和,[1,a的列数,length(x)]维矩阵
+% vals = reshape(vals,[size(a,2),length(x)]); % [a的列数,length(x)]维矩阵
+% [row(a),N+1] * (N+1,1) * (1*length(x)) 
+% discovered by Deepseek 
+vals = (a.')*cos(n*theta);
 if flagrow
     return
 else
