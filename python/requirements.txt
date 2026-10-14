@@ -1,0 +1,5 @@
+numpy>=1.22
+scipy>=1.9
+matplotlib>=3.5
+mpmath>=1.2
+pytest>=7.0
