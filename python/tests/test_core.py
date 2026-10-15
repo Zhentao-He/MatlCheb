@@ -265,12 +265,25 @@ def test_anmr_chain_rule_is_exact_for_polynomials_in_y():
     assert (x[0] - x[1]) < (x[-2] - x[-1])
 
 
-def test_anmr_other_endpoint_and_singular_kappa():
+def test_anmr_other_endpoint_and_zero_kappa():
     _Dxx, _Dx, x = AnMR(10, -1.0, 1.3)
     assert_allclose(x[0], 1.0, atol=1e-12)
     assert_allclose(x[-1], -1.0, atol=1e-12)
-    with pytest.raises(ValueError):
-        AnMR(4, 1.0, 0.0)
+
+
+def test_anmr_kappa_zero_is_cheb():
+    """kappa = 0 is the removable limit, i.e. the unclustered Chebyshev grid."""
+    for N, xB in ((4, 1.0), (8, -1.0), (15, 1.0)):
+        Dxx, Dx, x = AnMR(N, xB, 0.0)
+        Dy, y = cheb(N)
+        assert_allclose(x, y)
+        assert_allclose(Dx, Dy)
+        assert_allclose(Dxx, Dy @ Dy)
+        # A small positive kappa, still on the original formula, sits near that limit.
+        Dxx_s, Dx_s, x_s = AnMR(N, xB, 1e-4)
+        assert_allclose(x_s, y, atol=1e-7, rtol=0.0)
+        assert_allclose(Dx_s, Dy, atol=1e-5, rtol=1e-8)
+        assert_allclose(Dxx_s, Dy @ Dy, atol=1e-4, rtol=1e-8)
 
 
 def test_cheb_mp_matches_float_and_closed_form():

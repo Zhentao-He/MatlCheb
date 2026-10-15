@@ -21,10 +21,13 @@ def AnMR(N: int, xB: float, kappa: float):
         Endpoint that should be refined, ``+1`` or ``-1``.
     kappa :
         Clustering strength. Larger values pack nodes more tightly near
-        ``xB``. ``kappa = 0`` is a removable singularity of this formula
-        (the map tends to the identity) but the expression as written in
-        ``AnMR.m`` divides by ``sinh(2 kappa)`` and is not evaluated here
-        in that limit.
+        ``xB``. ``kappa = 0`` is a removable singularity of the hyperbolic
+        map (``sinh(2 kappa)`` vanishes). The limit is the identity on
+        ``[-1, 1]`` when ``xB = ±1``, so this routine returns the plain
+        Chebyshev operators from :func:`cheb` instead of dividing by zero.
+        That is the uniform Chebyshev grid described in the MATLAB comment
+        (``kappa = 0`` 退回为 cheb). The expression in ``AnMR.m`` is not
+        defined at exactly zero and evaluates to NaN under Octave.
 
     Returns
     -------
@@ -47,15 +50,16 @@ def AnMR(N: int, xB: float, kappa: float):
     Dy, y = cheb(N)
     if np.ndim(Dy) == 0:
         raise ValueError("AnMR requires N >= 1")
-    y = np.asarray(y, dtype=np.float64).reshape(-1, 1)
+    y = np.asarray(y, dtype=np.float64).reshape(-1)
     xB = float(xB)
     kappa = float(kappa)
     if kappa == 0.0:
-        raise ValueError(
-            "kappa = 0 makes AnMR singular (sinh(2 kappa) = 0); "
-            "use cheb(N) for the unclustered grid"
-        )
+        # dx/dy -> 1 and d²x/dy² -> 0, so Dx = Dy and Dxx = Dy².
+        Dx = Dy
+        Dxx = Dy @ Dy
+        return Dxx, Dx, y
 
+    y = y.reshape(-1, 1)
     sinh_2k = np.sinh(2.0 * kappa)
     phase = kappa * (1.0 - xB * y)
     xy = kappa * (xB ** 2) * 2.0 * np.cosh(phase) / sinh_2k

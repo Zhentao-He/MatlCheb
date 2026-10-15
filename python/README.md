@@ -68,7 +68,7 @@ A 1-D NumPy array is treated as a MATLAB column. Shape `(n, 1)`, `(1, n)`, and `
 
 一维 NumPy 数组按 MATLAB 列向量处理。形状 `(n, 1)`、`(1, n)`、`(n, m)` 与 MATLAB 的列、行、矩阵一致，`cheb_interpolate` 的输出方向也保持一致。
 
-`kappa` in `AnMR` must be nonzero (`kappa = 0` is the plain `cheb` grid, but the formula divides by `sinh(2 kappa)`). `xB` is `+1` or `-1`, the endpoint where nodes cluster.
+`xB` is `+1` or `-1`, the endpoint where nodes cluster. `kappa = 0` returns the plain `cheb` operators (the limit of the mesh map). `AnMR.m` divides by `sinh(2 kappa)` and is NaN at exactly zero under Octave.
 
 ## What the port checks / 验证
 
@@ -77,7 +77,7 @@ A 1-D NumPy array is treated as a MATLAB column. Shape `(n, 1)`, `(1, n)`, and `
 - `cheb`: row sums vanish; derivatives of polynomials of degree `<= N` are exact; off-diagonal entries match Trefethen’s closed form.
 - `myFCT1`, `real_to_cheb`, `cheb_to_real`: round trip; coefficients of `T_n` are unit vectors; the cosine sum and `scipy.fft.dct(..., type=1)` agree.
 - `cheb_interpolate`: `T_2` and a mapped linear series, including endpoint clipping.
-- `AnMR`: chain rule on polynomials of the reference coordinate `y`, which the matrix differentiates exactly.
+- `AnMR`: chain rule on polynomials of the reference coordinate `y`, which the matrix differentiates exactly. `kappa = 0` matches `cheb`.
 - `cheb_mp`: agreement with float64 `cheb` and with the closed form at 40 decimal places (absolute error below `1e-30`).
 - `spec_plot`: the marker y-data are `log10|a_n|`.
 
@@ -105,7 +105,7 @@ On that Octave suite the largest absolute difference was `1.8e-12` (`AnMR` secon
 
 - Passing only one endpoint to `cheb` raises `ValueError`. MATLAB ignored a lone extra argument and stayed on `[-1, 1]`.
 - `cheb` and `cheb_interpolate` reject `x1 == x2` instead of dividing by zero.
-- `AnMR(..., kappa=0)` raises. The MATLAB expression divides by `sinh(0)`; use `cheb` for that grid.
+- `AnMR(..., kappa=0)` returns the Chebyshev operators, the limit of the map. `AnMR.m` evaluates to NaN there (`sinh(0)`); Octave agrees with this port at a nearby `kappa` such as `1e-4`, which is already within `1e-7` of `cheb` on the nodes.
 - `myFCT1` rejects `N <= 0` with an error. MATLAB hits an out-of-bounds index. Odd `N` still raises `N has to be even.`
 - `cheb_mp` is mpmath, not the Advanpix `mp` toolbox. Results are `mpmath` matrices. Do further arithmetic inside `mp.workdps(dps)`.
 - `spec_plot` adds axis labels and a title. The plotted numbers are the same `log10|real_to_cheb(f)|` series. `show=False` by default so batch runs do not block.
@@ -117,7 +117,7 @@ On that Octave suite the largest absolute difference was `1.8e-12` (`AnMR` secon
 
 - `cheb` 只给一个端点时会报错；MATLAB 会忽略这个多余参数，仍在 `[-1, 1]` 上计算。
 - `x1 == x2` 时 `cheb` 和 `cheb_interpolate` 直接报错，而不是除以零。
-- `AnMR` 在 `kappa = 0` 时报错。MATLAB 公式会除以 `sinh(0)`；不加密网格时请用 `cheb`。
+- `AnMR` 在 `kappa = 0` 时返回普通 Chebyshev 算子，也就是网格映射的极限。`AnMR.m` 在这一点会得到 NaN（除以 `sinh(0)`）。Octave 在邻近值（例如 `kappa = 1e-4`）上与本移植一致，节点已经离 `cheb` 不到 `1e-7`。
 - `myFCT1` 在 `N <= 0` 时给出明确错误；MATLAB 会越界。`N` 为奇数时仍报 `N has to be even.`
 - `cheb_mp` 使用 mpmath，不是 Advanpix 的 `mp`。返回值是 mpmath 矩阵，后续运算请放在 `mp.workdps(dps)` 里。
 - `spec_plot` 增加了坐标轴标签和标题，绘制的数值仍是 `log10|real_to_cheb(f)|`。默认 `show=False`，批处理时不会卡住。

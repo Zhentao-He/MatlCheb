@@ -232,6 +232,22 @@ def test_interpolate_and_mesh_match_octave(octave_data):
         _check(names[1], octave_data[names[1]], Dx, 1e-10, 1e-9)
         _check(names[2], octave_data[names[2]], x, RTOL_T, ATOL_T)
 
+    # AnMR.m at kappa = 0 divides by sinh(0) and returns NaN. The Python
+    # port substitutes the analytic limit (plain cheb). A nearby kappa is
+    # finite in Octave and matches that limit.
+    assert int(np.squeeze(octave_data["anmr_zero_all_nan"])) == 1
+    Dxx0, Dx0, x0 = AnMR(8, 1.0, 0.0)
+    Dy, y = cheb(8)
+    assert_allclose(x0, y)
+    assert_allclose(Dx0, Dy)
+    assert_allclose(Dxx0, Dy @ Dy)
+    for xB, names in ((1.0, ("Dxxs", "Dxs", "xams")), (-1.0, ("Dxxs2", "Dxs2", "xams2"))):
+        Dxx, Dx, x = AnMR(8, xB, 1e-4)
+        _check(names[0], octave_data[names[0]], Dxx, 1e-10, 1e-8)
+        _check(names[1], octave_data[names[1]], Dx, 1e-10, 1e-9)
+        _check(names[2], octave_data[names[2]], x, RTOL_T, ATOL_T)
+        assert_allclose(x, y, atol=1e-7, rtol=0.0)
+
 
 def test_spec_plot_series_matches_octave(octave_data):
     samples = octave_data["_inputs"]["f16"]

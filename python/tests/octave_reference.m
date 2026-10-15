@@ -65,6 +65,12 @@ v_clip = cheb_interpolate(ac, -1, 1, 1.0000001);
 [Dxx, Dx, xam] = AnMR(16, 1, 0.8);
 [Dxx2, Dx2, xam2] = AnMR(12, -1, 1.5);
 [Dxx4, Dx4, xam4] = AnMR(4, 1, 0.7);
+% kappa = 0 hits sinh(0) in AnMR.m and is NaN. A nearby value is finite
+% and is already the plain Chebyshev grid to high accuracy.
+[Dxx0, Dx0, xam0] = AnMR(8, 1, 0);
+anmr_zero_all_nan = all(isnan(xam0)) && all(isnan(Dx0(:))) && all(isnan(Dxx0(:)));
+[Dxxs, Dxs, xams] = AnMR(8, 1, 1e-4);
+[Dxxs2, Dxs2, xams2] = AnMR(8, -1, 1e-4);
 
 spec = log10(abs(real_to_cheb(f16)));
 
@@ -89,4 +95,6 @@ save("-v7", out_path, ...
     "v_s", "v_col", "v_row", "v_domain", "v_swap", ...
     "v_mat_s", "v_mat_col", "v_mat_row", "v_row_a", "v_clip", ...
     "Dxx", "Dx", "xam", "Dxx2", "Dx2", "xam2", "Dxx4", "Dx4", "xam4", ...
+    "Dxx0", "Dx0", "xam0", "anmr_zero_all_nan", ...
+    "Dxxs", "Dxs", "xams", "Dxxs2", "Dxs2", "xams2", ...
     "spec", "spec_plot_ok", "spec_plot_msg");
